@@ -3,6 +3,10 @@ import { BusinessError } from '@kit.BasicServicesKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { promptAction } from '@kit.ArkUI'
 
+/**
+ * @description 网络连接状态工具类
+ */
+
 export class ConnectionUtils {
   netConnection = connection.createNetConnection()
 

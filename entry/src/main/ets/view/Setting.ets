@@ -13,16 +13,28 @@
  * limitations under the License.
  */
 
+import PreferenceUtils from '../utils/PreferenceUtils';
 import ItemData from '../viewmodel/ItemData';
 import mainViewModel from '../viewmodel/MainViewModel';
+import { CustomSliderDialog } from './CustomSliderDialog';
 
 /**
  * Setting tab content
  */
 @Component
 export default struct Setting {
+  @StorageLink('fontSizeOffset') fontSizeOffSet: number = 0
+  @StorageLink('appNotify') appNotify: boolean = false
+
+  SliderCustomDialogController: CustomDialogController = new CustomDialogController({
+    builder: CustomSliderDialog({}),
+    alignment: DialogAlignment.Bottom,
+    customStyle: true,
+    offset: { dx: 0, dy: -25 }
+  });
+
   @Builder
-  settingCell(item: ItemData) {
+  settingCell(item: ItemData, customDialogController: CustomDialogController) {
     Row() {
       Row({}) {
         Image(item.img)
@@ -32,7 +44,7 @@ export default struct Setting {
             right: '12vp'
           })
         Text(item.title)
-          .fontSize('16fp')
+          .fontSize(16 + this.fontSizeOffSet)
       }
 
       if (item.others === undefined) {
@@ -40,7 +52,10 @@ export default struct Setting {
           .width('12vp')
           .height('24vp')
       } else {
-        Toggle({ type: ToggleType.Switch, isOn: false })
+        Toggle({ type: ToggleType.Switch, isOn: this.appNotify })
+          .onChange((isOn: boolean) => {
+            PreferenceUtils.syncAppNotifyChange(isOn)
+          })
       }
     }
     .justifyContent(FlexAlign.SpaceBetween)
@@ -48,6 +63,11 @@ export default struct Setting {
     .padding({
       left: '8vp',
       right: '22vp'
+    })
+    .onClick(() => {
+      if (item.id === 1) {
+        customDialogController.open()
+      }
     })
   }
 
@@ -61,7 +81,7 @@ export default struct Setting {
             bottom: '12vp'
           })
           .fontWeight(700)
-          .fontSize('26fp')
+          .fontSize(26 + this.fontSizeOffSet)
 
         Row() {
           Image($r('app.media.account'))
@@ -69,9 +89,9 @@ export default struct Setting {
             .height('48vp')
           Column() {
             Text($r('app.string.setting_account_name'))
-              .fontSize('20fp')
+              .fontSize(20 + this.fontSizeOffSet)
             Text($r('app.string.setting_account_email'))
-              .fontSize('12fp')
+              .fontSize(12 + this.fontSizeOffSet)
               .margin({ top: '4vp' })
           }
           .alignItems(HorizontalAlign.Start)
@@ -85,7 +105,7 @@ export default struct Setting {
             ListItemGroup() {
               ForEach(item, (cell: ItemData, cellIndex) => {
                 ListItem() {
-                  this.settingCell(cell)
+                  this.settingCell(cell, this.SliderCustomDialogController)
                 }
                 .height('48vp')
               })
@@ -113,7 +133,7 @@ export default struct Setting {
         Button($r('app.string.setting_button'), { type: ButtonType.Capsule })
           .width('90%')
           .height('40vp')
-          .fontSize('16fp')
+          .fontSize(16 + this.fontSizeOffSet)
           .fontColor('#FA2A2D')
           .fontWeight(FontWeight.Medium)
           .backgroundColor('#E5E8EA')

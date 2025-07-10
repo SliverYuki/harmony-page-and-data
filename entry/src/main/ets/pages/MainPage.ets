@@ -12,11 +12,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+import { http } from "@kit.NetworkKit";
 import { HttpUtils } from "../utils/httpUtils";
 import Home from "../view/Home";
 import Setting from "../view/Setting";
-import { http } from "@kit.NetworkKit";
+import PreferenceUtils from '../utils/PreferenceUtils'
 
 @Builder
 export function MainPageBuilder() {
@@ -30,6 +30,14 @@ export function MainPageBuilder() {
 export struct MainPage {
   @State currentIndex: number = 0;
   private tabsController: TabsController = new TabsController();
+
+  @StorageLink('fontSizeOffset') fontSizeOffset:number = 0
+  @StorageLink('appNotify') appNotify:boolean = false
+
+  aboutToAppear(): void {
+    this.fontSizeOffset = PreferenceUtils.getAppFontSizeOffset()
+    this.appNotify = PreferenceUtils.getAppNotify()
+  }
 
   @Builder
   TabBuilder(title: Resource, index: number, selectedImg: Resource) {
@@ -65,35 +73,35 @@ export struct MainPage {
         TabContent() {
           Home()
         }
-        .padding({
-          left: '12vp',
-          right: '12vp'
-        })
-        .backgroundColor('#F1F3F5')
-        .tabBar(this.TabBuilder($r('app.string.Tab_Bar_One'), 0, $r('sys.symbol.house_fill')))
+          .padding({
+            left: '12vp',
+            right: '12vp'
+          })
+          .backgroundColor('#F1F3F5')
+          .tabBar(this.TabBuilder($r('app.string.Tab_Bar_One'), 0, $r('sys.symbol.house_fill')))
 
         TabContent() {
           Setting()
         }
-        .padding({
-          left: '12vp',
-          right: '12vp'
-        })
-        .backgroundColor('#F1F3F5')
-        .tabBar(this.TabBuilder($r('app.string.Tab_Bar_Two'), 1, $r('sys.symbol.person_crop_circle_fill_1')))
+          .padding({
+            left: '12vp',
+            right: '12vp'
+          })
+          .backgroundColor('#F1F3F5')
+          .tabBar(this.TabBuilder($r('app.string.Tab_Bar_Two'), 1, $r('sys.symbol.person_crop_circle_fill_1')))
       }
-      .margin({ bottom: '64vp' })
-      .width('100%')
-      .height('100%')
-      .barHeight('80vp')
-      .barMode(BarMode.Fixed)
-      .onChange((index: number) => {
-        this.currentIndex = index;
-      })
+        .margin({ bottom: '64vp' })
+        .width('100%')
+        .height('100%')
+        .barHeight('80vp')
+        .barMode(BarMode.Fixed)
+        .onChange((index: number) => {
+          this.currentIndex = index;
+        })
     }
-    .height('100%')
-    .hideTitleBar(true)
-    .backgroundColor('#F1F3F5')
+      .height('100%')
+      .hideTitleBar(true)
+      .backgroundColor('#F1F3F5')
   }
 
   /**
@@ -108,7 +116,7 @@ export struct MainPage {
     })
 
     await httpUtils.httpRequest.request('/list', { method: http.RequestMethod.GET })
-      .then((data: http.HttpResponse) => {
+      .then((res: http.HttpResponse) => {
 
       })
       .finally(() => {

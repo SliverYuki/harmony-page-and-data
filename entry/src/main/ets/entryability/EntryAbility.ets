@@ -17,6 +17,7 @@ import { AbilityConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { window } from '@kit.ArkUI';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { ConnectionUtils } from '../utils/connectionUtils'
+import PreferenceUtils from '../utils/PreferenceUtils'
 
 /**
  * Lift cycle management of Ability.
@@ -33,6 +34,9 @@ export default class entryAbility extends UIAbility {
     this.connectionUtils.openRegister()
 
     this.connectionUtils.registerNetworkAvailableStatus()
+
+    // 创建持久化存储实例
+    PreferenceUtils.getSettingPreference(this.context)
   }
 
   onDestroy(): void | Promise<void> {
