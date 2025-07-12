@@ -10,11 +10,11 @@ const STORE_CONFIG: relationalStore.StoreConfig = {
   securityLevel: relationalStore.SecurityLevel.S1
 }
 
-const CREATE_SPORTS_TABLE_SQL:string = 'CREATE TABLE IF NOT EXISTS SPORTS (ID INTEGER PRIMARY KEY AUTOINCREMENT, NAME TEXT ' + 'NOT NULL, TYPE TEXT NOT NULL)';
+const CREATE_SPORTS_TABLE_SQL:string = 'CREATE TABLE IF NOT EXISTS SPORTS (ID INTEGER PRIMARY KEY AUTOINCREMENT, NAME TEXT' + 'NOT NULL, TYPE TEXT NOT NULL)';
 
-const CREATE_PLANS_TABLE_SQL: string = 'CREATE TABLE IF NOT EXISTS PLANS (ID INTEGER PRIMARY KEY AUTOINCREMENT, SPORT_ID INTEGER ' +  'NOT NULL, DURATION INTEGER NOT NULL, STATUS TEXT NOT NULL)';
+const CREATE_PLANS_TABLE_SQL: string = 'CREATE TABLE IF NOT EXISTS PLANS (ID INTEGER PRIMARY KEY AUTOINCREMENT, SPORT_ID INTEGER ' + 'NOT NULL, DURATION INTEGER NOT NULL, STATUS TEXT NOT NULL)';
 
-const QUERY_ALL_PLANS_SQL: string = 'SELECT p.id AS ID,s.NAME AS NAME,s.type AS TYPE,p.DURATION AS DURATION,p.STATUS AS STATUS FROM SPORTS AS s ' +      'JOIN PLANS AS p WHERE s.ID = P.SPORT_ID';
+const QUERY_ALL_PLANS_SQL: string = 'SELECT p.id AS ID,s.NAME AS NAME,s.type AS TYPE,p.DURATION AS DURATION,p.STATUS AS STATUS FROM SPORTS AS s ' + 'JOIN PLANS AS p WHERE s.ID = P.SPORT_ID';
 
 
 export class RDBStoreUtils {
@@ -89,11 +89,56 @@ export class RDBStoreUtils {
         // 使用 goToNextRow 获取查询结果的每一行
         while (resultSet.goToNextRow()) {
           hilog.info(0x0000, LOG_TAG, JSON.stringify(resultSet.getRow()))
+          // 获取详细字段时，需要使用类型转换
+
+          const name:string = resultSet.getString(resultSet.getColumnIndex('NAME'))
+
           plansSet.push(resultSet.getRow())
         }
         resultSet.close()
       }).catch((err: BusinessError) => {
         hilog.error(0x0000, LOG_TAG, `Query faild, error code: ${err.code}, message: ${err.message}`)
+      })
+  }
+
+  // 根据条件查询计划
+  async queryPlansByCondition(duration: number | null, status: boolean | null) {
+    let plansSet: relationalStore.ValuesBucket[] = []
+
+    // 根据参数构建 SQL 语句，添加 duration 和 status 对应的查询条件
+    let SQL_STR = 'SELECT p.id AS ID,s.NAME AS NAME,s.type AS TYPE,p.DURATION AS DURATION,p.STATUS AS STATUS FROM SPORTS AS s ' +
+      'JOIN PLANS AS p WHERE s.ID = P.SPORT_ID'
+
+    await this.store?.querySql(SQL_STR)
+      .then((resultSet: relationalStore.ResultSet) => {
+        // 使用 goToNextRow 获取查询结果的每一行
+        while (resultSet.goToNextRow()) {
+          hilog.info(0x0000, LOG_TAG, JSON.stringify(resultSet.getRow()))
+          plansSet.push(resultSet.getRow())
+        }
+        resultSet.close()
+      })
+      .catch((err: BusinessError) => {
+        hilog.error(0x0000, LOG_TAG, `Query faild, error code: ${err.code}, message: ${err.message}`)
+      })
+
+    return plansSet
+  }
+
+  // 添加计划
+  async addPlan(sportID: number, duration: number, status: boolean) {
+    const planData: relationalStore.ValuesBucket = {
+      'SPORT_ID': sportID,
+      'DURATION': duration,
+      'STATUS': status ? '已完成' : '未完成'
+    }
+
+    await this.store?.insert('PLANS', planData, relationalStore.ConflictResolution.ON_CONFLICT_REPLACE)
+      .then((insertRowID: number) => {
+        hilog.info(0x0000, LOG_TAG, `${insertRowID} row has inserted`)
+      })
+      .catch((err: BusinessError) => {
+        hilog.error(0x0000, LOG_TAG, `Insert failed, error code: ${err.code}, message: ${err.message}`)
       })
   }
 
@@ -103,16 +148,106 @@ export class RDBStoreUtils {
       'DURATION': duration,
       'STATUS': status ? '已完成' : '未完成'
     }
-
+    //
     let predicates = new relationalStore.RdbPredicates('PLANS')
     predicates.equalTo('ID', planID)
+    //
+    // await this.store?.update(planData, predicates, relationalStore.ConflictResolution.ON_CONFLICT_REPLACE)
+    //   .then((updateRowsCount: number) => {
+    //     hilog.info(0x0000, LOG_TAG, `${updateRowsCount} rows has updated`)
+    //   })
+    //   .catch((err: BusinessError) => {
+    //     hilog.error(0x0000, LOG_TAG, `Update failed, error code: ${err.code}, message: ${err.message}`)
+    //   })
 
-    await this.store?.update(planData, predicates, relationalStore.ConflictResolution.ON_CONFLICT_REPLACE)
-      .then((updateRowsCount: number) => {
-        hilog.info(0x0000, LOG_TAG, `${updateRowsCount} rows has updated`)
+    // 另一种方式，使用事务对象执行，以避免数据不一致
+    await this.store?.createTransaction()
+      .then((transaction: relationalStore.Transaction) => {
+        transaction.update(planData, predicates, relationalStore.ConflictResolution.ON_CONFLICT_REPLACE)
+          .then((updateRowsCount: number) => {
+            // 使用 commit 提交事务
+            transaction.commit()
+            hilog.info(0x0000, LOG_TAG, `${updateRowsCount} rows has updated`)
+          })
+          .catch((err: BusinessError) => {
+            // 使用 rollback 回滚事务
+            transaction.rollback()
+            hilog.error(0x0000, LOG_TAG, `Update failed, error code: ${err.code}, message: ${err.message}`)
+          })
       })
       .catch((err: BusinessError) => {
-        hilog.error(0x0000, LOG_TAG, `Update failed, error code: ${err.code}, message: ${err.message}`)
+        hilog.error(0x0000, LOG_TAG, `Create transaction failed, error code: ${err.code}, message: ${err.message}`)
       })
+  }
+
+  // 删除计划
+  async deletePlan(planID: number) {
+    let predicates = new relationalStore.RdbPredicates('PLANS')
+    predicates.equalTo('ID', planID)
+    await this.store?.delete(predicates)
+      .then((deleteRowsCount: number) => {
+        hilog.info(0x0000, LOG_TAG, `${deleteRowsCount} rows has deleted`)
+      })
+      .catch((err: BusinessError) => {
+        hilog.error(0x0000, LOG_TAG, `Delete failed, error code: ${err.code}, message: ${err.message}`)
+      })
+  }
+
+  // 测试全文检索表
+  async testFTSTable() {
+    // 创建全文检索表
+    const SQL_CREATE_TABLE = "CREATE VIRTUAL TABLE example USING fts4(name, content, tokenize=icu zh_CN)";
+    this.store?.executeSql(SQL_CREATE_TABLE, (err: BusinessError) => {
+      if (err) {
+        console.error(`Failed to creating fts table.`);
+        return;
+      }
+      console.info(`Succeeded in creating fts table.`);
+    })
+
+    // 测试全文检索
+    this.store?.querySql("SELECT name FROM example WHERE example MATCH '测试'", (err, resultSet) => {
+        if (err) {
+          console.error(`Query failed.`);
+          return;
+        }
+        while (resultSet.goToNextRow()) {
+          const name = resultSet.getString(resultSet.getColumnIndex("name"));
+          console.info(`name=${name}`);
+        }
+        resultSet.close();
+      })
+  }
+
+  // 测试数据库备份与恢复
+  async testBackup() {
+    // 默认在 db 文件相同路径下备份，
+    this.store?.backup('Backup.db', (err: BusinessError) => {
+      if (err) {
+        hilog.error(0x0000, LOG_TAG, `Backup Failed, error code: ${err.code}, message: ${err.message}`)
+        return
+      }
+      hilog.info(0x0000, LOG_TAG, `Backup Successed`)
+    })
+  }
+
+  async testRestore() {
+    this.store?.restore('Backup.db', (err: BusinessError) => {
+      if (err) {
+        hilog.error(0x0000, LOG_TAG, `Restore Failed, error code: ${err.code}, message: ${err.message}`)
+        return
+      }
+      hilog.info(0x0000, LOG_TAG, `Restore Successed`)
+    })
+  }
+
+  // 删库跑路
+  async dropDatabase(context: Context) {
+    relationalStore.deleteRdbStore(context, STORE_CONFIG.name, (err: BusinessError) => {
+      if (err) {
+        hilog.error(0x0000, LOG_TAG, `Delete Store failed, error code: ${err.code}, message: ${err.message}`)
+      }
+      hilog.info(0x0000, LOG_TAG, `Delete Store Successed`)
+    })
   }
 }

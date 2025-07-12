@@ -29,6 +29,7 @@ export function MainPageBuilder() {
 @Component
 export struct MainPage {
   @State currentIndex: number = 0;
+  @State pathStack: NavPathStack = new NavPathStack();
   private tabsController: TabsController = new TabsController();
 
   @StorageLink('fontSizeOffset') fontSizeOffset:number = 0
@@ -71,7 +72,7 @@ export struct MainPage {
         controller: this.tabsController
       }) {
         TabContent() {
-          Home()
+          Home({ pathStack: this.pathStack })
         }
           .padding({
             left: '12vp',
@@ -102,6 +103,9 @@ export struct MainPage {
       .height('100%')
       .hideTitleBar(true)
       .backgroundColor('#F1F3F5')
+      .onReady((context: NavDestinationContext) => {
+        this.pathStack = context.pathStack;
+      })
   }
 
   /**
