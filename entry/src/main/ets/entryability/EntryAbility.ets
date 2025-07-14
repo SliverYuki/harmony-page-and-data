@@ -18,6 +18,7 @@ import { window } from '@kit.ArkUI';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { ConnectionUtils } from '../utils/connectionUtils'
 import PreferenceUtils from '../utils/PreferenceUtils'
+import RDBStoreUtils from '../utils/RDBStoreUtils';
 
 /**
  * Lift cycle management of Ability.
@@ -37,6 +38,9 @@ export default class entryAbility extends UIAbility {
 
     // 创建持久化存储实例
     PreferenceUtils.getSettingPreference(this.context)
+
+    // 创建数据库实例
+    RDBStoreUtils.getRdbStore(this.context)
   }
 
   onDestroy(): void | Promise<void> {

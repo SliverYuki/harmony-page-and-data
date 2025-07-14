@@ -29,6 +29,7 @@ import ListInfo from '../viewmodel/ListInfo';
 export default struct Home {
   private swiperController: SwiperController = new SwiperController();
   @State listData: ListInfo[] = []
+  @Link pathStack: NavPathStack;
 
   aboutToAppear(): void {
     this.getListDataByRCP()
@@ -68,6 +69,11 @@ export default struct Home {
                     .margin({ top: '4vp' })
                 }
               }
+              .onClick(() => {
+                if (index === 4) {
+                  this.pathStack.pushPathByName('GoalPage', null);
+                }
+              })
             }, (item: ItemData) => JSON.stringify(item))
           }
             .backgroundImage($r('app.media.backgroundImage'))
