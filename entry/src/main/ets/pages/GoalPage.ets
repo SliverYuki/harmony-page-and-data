@@ -238,23 +238,7 @@ export struct GoalPage {
               .value('状态')
               .margin({ right: 25 })
 
-            Button({ type: ButtonType.Circle }) {
-              Image($r('app.media.reset'))
-                .width(40)
-                .objectFit(ImageFit.Contain)
-            }
-              .margin({ right: 16 })
-              .width(40)
-              .height(40)
-              .padding(0)
-              .backgroundColor(Color.Transparent)
-              .onClick(async () => {
-                await RDBStoreUtils.queryAllPlans()
-                  .then(value => {
-                    this.plansSet = value
-                  })
-              })
-
+            // 筛选按钮
             Button({ type: ButtonType.Circle }) {
               Image($r('app.media.sift'))
                 .width(40)
@@ -271,6 +255,24 @@ export struct GoalPage {
                     this.plansSet = value
                   })
               })
+
+            // 重置按钮
+            Button({ type: ButtonType.Circle }) {
+              Image($r('app.media.reset'))
+                .width(40)
+                .objectFit(ImageFit.Contain)
+            }
+            .margin({ right: 16 })
+            .width(40)
+            .height(40)
+            .padding(0)
+            .backgroundColor(Color.Transparent)
+            .onClick(async () => {
+              await RDBStoreUtils.queryAllPlans()
+                .then(value => {
+                  this.plansSet = value
+                })
+            })
           }
             .width('100%')
             .justifyContent(FlexAlign.Start)
@@ -299,6 +301,7 @@ export struct GoalPage {
                     .font({ size: 14, weight: 400 })
                     .opacity(0.6)
 
+                  // 编辑
                   Row() {
                     Button({ type: ButtonType.Circle }) {
                       Image($r('app.media.edit'))
@@ -307,7 +310,7 @@ export struct GoalPage {
                     }
                     .width(40)
                     .height(40)
-                    .margin({ right: 16 })
+                    .margin({ right: 12 })
                     .padding(0)
                     .backgroundColor(Color.Transparent)
                     .onClick(() => {
@@ -316,6 +319,7 @@ export struct GoalPage {
                       this.isUpdateNow = true
                     })
 
+                    // 删除
                     Button({ type: ButtonType.Circle }) {
                       Image($r('app.media.delete'))
                         .width(40)
@@ -422,15 +426,18 @@ export struct GoalPage {
         this.durationSet = value
       })
 
-    this.durationSelectOptions = [{ value: 'ALL' }]
+    this.durationSelectOptions = [{ value: '全部' }]
     this.durationSet.forEach(el => {
       this.durationSelectOptions.push({ value: el + 'min' })
     })
 
     this.statusSelectOptions = [
-      { value: "ALL" },
-      { value: 'Completed' },
-      { value: 'Uncompleted' }
+      { value: "全部" },
+      { value: '已完成' },
+      { value: '未完成' }
     ]
+
+    this.currentDuration = undefined
+    this.currentStatus = undefined
   }
 }
